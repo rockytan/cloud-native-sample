@@ -1,5 +1,9 @@
 package com.example;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.graphite.GraphiteReporter;
+import com.codahale.metrics.graphite.GraphiteSender;
+import com.codahale.metrics.graphite.GraphiteUDP;
 import com.google.common.collect.Lists;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +34,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
+import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,6 +47,17 @@ import java.util.stream.Stream;
 @EnableZuulProxy
 @SpringBootApplication
 public class GatewayApplication {
+
+	@Autowired
+	private MetricRegistry metricRegistry;
+
+	@Bean
+	GraphiteReporter graphiteReporter(){
+		final GraphiteSender graphite = new GraphiteUDP(new InetSocketAddress("localhost", 2003));
+		GraphiteReporter reporter = GraphiteReporter.forRegistry(metricRegistry).build(graphite);
+		reporter.start(1, TimeUnit.SECONDS);
+		return reporter;
+	}
 
 	@Bean
 	@LoadBalanced
